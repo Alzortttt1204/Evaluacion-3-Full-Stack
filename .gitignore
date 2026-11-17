@@ -1,0 +1,7 @@
+node_modules/
+dist/
+
+# Backend (Maven)
+backend/target/
+.idea/
+*.iml
