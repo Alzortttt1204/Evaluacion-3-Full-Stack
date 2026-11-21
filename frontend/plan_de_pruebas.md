@@ -36,7 +36,7 @@ el backend con JUnit (`backend/src/test`).
 | Detalle de producto | Subtotal, cantidad inválida y límite de stock | `src/components/organisms/DetalleProducto.test.jsx` |
 | Menú principal | Botón ☰ (responsivo) y enlaces según la sesión | `src/components/organisms/MenuPrincipal.test.jsx` |
 | Login | Respuesta 401 del backend y login correcto (servicio Axios simulado) | `src/components/organisms/FormularioLogin.test.jsx` |
-| Registro | Campo de contexto obligatorio y registro correcto | `src/components/organisms/FormularioRegistro.test.jsx` |
+| Registro | Campo de contexto obligatorio, registro enviado a la API y correo/RUN repetido | `src/components/organisms/FormularioRegistro.test.jsx` |
 | Panel de Control | Formulario de producto (crear y editar) | `src/components/organisms/FormularioProducto.test.jsx` |
 | Rutas privadas | Acceso con y sin sesión, y según el rol | `src/routes/RutaPrivada.test.jsx` |
 | Página Productos | Catálogo completo, filtro y búsqueda sin resultados | `src/pages/Productos.test.jsx` |
@@ -92,7 +92,7 @@ npx vitest run      # una sola ejecución (la que se usó para este plan)
 | PU-025 | FormularioLogin | Contraseña incorrecta | `AuthService.login` simulado responde 401; correo de admin y contraseña errónea | Click en "Ingresar" | Mensaje "Correo o contraseña incorrectos", `onLogin` no se llama y no hay sesión en `localStorage` | ✅ Pasa |
 | PU-026 | FormularioLogin | Credenciales correctas | `AuthService.login` simulado responde token y rol `USER` | Click en "Ingresar" | Se llama al servicio con el correo y la contraseña; `localStorage` guarda `{ correo, rol: USER, token }` (sin contraseña) | ✅ Pasa |
 | PU-027 | FormularioRegistro | Campo de contexto obligatorio | Todos los campos de la primera entrega completos, sin "Instrumento principal" | Click en "Registrarme" | Mensaje "Debe seleccionar su instrumento principal" y el cursor queda en ese campo | ✅ Pasa |
-| PU-028 | FormularioRegistro | Registro correcto | Todos los campos completos, incluidos instrumento y nivel | Click en "Registrarme" | Mensaje "Registro realizado correctamente" y el formulario se limpia | ✅ Pasa |
+| PU-028 | FormularioRegistro | Registro correcto enviado a la API | `AuthService.registrar` simulado con `vi.mock` (responde 201); todos los campos completos | Click en "Registrarme" | Se llama a `registrar` con los datos y `comunaId: 1`; mensaje "Registro realizado correctamente" y el formulario se limpia | ✅ Pasa |
 | PU-029 | FormularioProducto (Panel de Control) | Crear producto válido | Formulario vacío con `onGuardar = vi.fn()`; se completan los 6 campos | Click en "Agregar producto" | `onGuardar` llamado con nombre, marca, categoría y precio ingresados | ✅ Pasa |
 | PU-030 | FormularioProducto (Panel de Control) | Modo edición | `productoInicial` = batería Pearl | Renderizar el formulario | El campo nombre trae "Bateria" y el botón dice "Guardar cambios" | ✅ Pasa |
 | PU-031 | RutaPrivada | Sin sesión redirige al login | `localStorage` vacío | Entrar a `/admin` | Se ve "Página de login" y no el panel | ✅ Pasa |
@@ -105,14 +105,15 @@ npx vitest run      # una sola ejecución (la que se usó para este plan)
 | PU-038 | App (rutas y estado compartido) | Producto creado en el Panel se envía al backend | `ProductoService` simulado (GET devuelve 1 producto y luego 2); sesión ADMIN; `App` en `/admin` | Completar el formulario, "Agregar producto" y luego el enlace "Productos" | `crear` se llama con el JSON del backend y el catálogo muestra "Ukelele Soprano" y "Mostrando 2 de 2 productos" | ✅ Pasa |
 | PU-039 | validaciones de la fecha de nacimiento | Rechaza una fecha de nacimiento de mañana, incluso a las 22:30 | Fecha del sistema fijada en 16-10-2026 22:30 (`vi.setSystemTime`); registro válido con `fenac: '2026-10-17'` | Llamar a `validarRegistro` | Error en `fenac`: "La fecha de nacimiento no puede ser posterior a hoy" (antes, de noche, esta fecha pasaba por la diferencia con UTC) | ✅ Pasa |
 | PU-040 | validaciones de la fecha de nacimiento | Exige entre 13 y 120 años | Fecha del sistema fijada en 16-10-2026; tres registros con fechas 2015-01-01, 1890-05-10 y 2004-03-21 | Llamar a `validarRegistro` con cada uno | 2015 → "Debe tener al menos 13 años para registrarse"; 1890 → error en `fenac`; 2004 → `null` (válida) | ✅ Pasa |
+| PU-041 | FormularioRegistro | Correo o RUN ya registrados | `AuthService.registrar` simulado rechazando con 409; todos los campos completos | Click en "Registrarme" | Mensaje "Ya existe una cuenta con ese correo o RUN" y los datos quedan en el formulario | ✅ Pasa |
 
 ## 6. Resultado de la ejecución
 
 ```
  Test Files  13 passed (13)
-      Tests  40 passed (40)
+      Tests  41 passed (41)
 ```
 
-Las 40 pruebas pasan. Además del plan automatizado, se revisó manualmente en el navegador
+Las 41 pruebas pasan. Además del plan automatizado, se revisó manualmente en el navegador
 (Chrome) la versión de escritorio (1280 px) y celular (375 px) de las páginas, comparándolas
 con el sitio original de la primera entrega.

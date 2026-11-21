@@ -11,7 +11,6 @@ const registroValido = {
   telefono: '',
   direccion: 'Av. Libertad 100',
   comuna: 'Viña del Mar',
-  tipoUsuario: 'cliente',
   instrumento: 'Bajo',
   nivel: 'Intermedio',
   contrasena: 'clave1',

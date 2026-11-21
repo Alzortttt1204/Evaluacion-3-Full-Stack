@@ -137,13 +137,18 @@ Sin `JWT_SECRET` todo funciona, pero los tokens dejan de servir cada vez que se 
 
 | Ruta | Sin token | USER | ADMIN |
 | :--- | :--- | :--- | :--- |
-| `POST /api/auth/login`, Swagger | ✅ | ✅ | ✅ |
+| `POST /api/auth/login`, `POST /api/auth/registro`, Swagger | ✅ | ✅ | ✅ |
 | `GET /api/productos` y `/api/productos/{id}` (catálogo) | ✅ | ✅ | ✅ |
 | `POST /api/ventas` (registrar una compra) | 401 | ✅ | ✅ |
 | `POST`, `PUT`, `DELETE` de productos | 401 | **403** | ✅ |
 | Todo lo de clientes y el resto de ventas (también los GET) | 401 | **403** | ✅ |
 
 **401** = no envió token o el token no sirve. **403** = el token es válido, pero su rol no tiene permiso.
+
+**Registro:** `POST /api/auth/registro` recibe los datos del formulario "Registrarse" (run, nombre, apellidos, correo,
+teléfono, dirección, comunaId y contraseña). En una sola transacción guarda la ficha en `cliente` y la cuenta en
+`usuario` con la contraseña en BCrypt y **siempre `rol_id = 2` (USER)**: nadie puede registrarse como ADMIN.
+Responde **201**, **400** si faltan datos o **409** si el correo o el RUN ya existen (y en ese caso no guarda nada).
 
 **Usuarios de prueba** (los mismos del frontend). En la tabla se guarda solo el hash BCrypt de la contraseña, nunca el texto:
 
@@ -195,7 +200,7 @@ backend/
     │   ├── model/        Entidades JPA: Producto, Cliente, Venta, Usuario, Rol
     │   ├── repository/   Interfaces que heredan de JpaRepository<Entidad, Long>
     │   ├── service/      Lógica CRUD (@Service, repositorio inyectado por constructor)
-    │   ├── controller/   Controladores REST, AuthController (login) y ManejadorErrores
+    │   ├── controller/   Controladores REST, AuthController (login y registro) y ManejadorErrores
     │   └── security/     SeguridadConfig, JwtFiltro y JwtServicio
     └── resources/
         ├── application.properties
@@ -214,7 +219,7 @@ Los mismos 5 endpoints para cada entidad (`productos`, `clientes`, `ventas`):
 | PUT | `/api/productos/{id}` | Actualizar existente | ADMIN | 200, o 404 si no existe |
 | DELETE | `/api/productos/{id}` | Eliminar por ID | ADMIN | 204, o 404 si no existe |
 
-Cambiar `productos` por `clientes` o `ventas` para las otras entidades (15 endpoints en total), más `POST /api/auth/login`.
+Cambiar `productos` por `clientes` o `ventas` para las otras entidades (15 endpoints en total), más `POST /api/auth/login` y `POST /api/auth/registro`.
 En clientes y ventas también los GET piden token de ADMIN, y `POST /api/ventas` acepta USER o ADMIN (tabla de la sección 5).
 
 Si la operación rompe una regla de la base de datos, la API responde **409 Conflict** con un mensaje.
@@ -259,4 +264,4 @@ direcciones, precios, fechas...) los genera **DataFaker** al azar en cada ejecuc
 | Clase | Qué prueba |
 | :--- | :--- |
 | `CrudEndpointsTest` (5) | Los 5 endpoints de Producto, Cliente y Venta con token de ADMIN y datos de DataFaker, los enlaces HATEOAS y el 409 |
-| `AutenticacionTest` (10) | Login correcto (con su rol) e incorrecto, catálogo público, 401 sin token o con token falso, 403 para USER en productos y clientes, USER puede registrar una venta, y Swagger público |
+| `AutenticacionTest` (12) | Registro de una cuenta USER que luego inicia sesión, registro con correo repetido (409), login correcto (con su rol) e incorrecto, catálogo público, 401 sin token o con token falso, 403 para USER en productos y clientes, USER puede registrar una venta, y Swagger público |

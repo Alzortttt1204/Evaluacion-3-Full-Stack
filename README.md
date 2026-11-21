@@ -67,6 +67,7 @@ npm run build    # versión de producción en la carpeta dist/
 | Qué hace la web | Petición con Axios | Archivo |
 | :--- | :--- | :--- |
 | Cargar el catálogo al abrir la página | `GET /api/productos` | `services/ProductoService.js`, `App.jsx` |
+| Registrarse | `POST /api/auth/registro` → crea el cliente y su cuenta con rol **USER** en MySQL | `services/AuthService.js`, `FormularioRegistro.jsx` |
 | Iniciar sesión | `POST /api/auth/login` → guarda `{ correo, rol, token }` en `localStorage` | `services/AuthService.js`, `FormularioLogin.jsx` |
 | Crear producto (Panel de Control) | `POST /api/productos` con `Authorization: Bearer <token>` | `ProductoService.js`, `pages/Admin.jsx` |
 | Editar producto | `PUT /api/productos/{id}` con token | `ProductoService.js`, `pages/Admin.jsx` |
@@ -159,9 +160,9 @@ Campos de contexto de una tienda de música agregados:
 
 ## Pruebas
 
-- **Frontend:** 40 pruebas unitarias con Vitest, todas con el patrón AAA. Las que llaman a la API simulan
+- **Frontend:** 41 pruebas unitarias con Vitest, todas con el patrón AAA. Las que llaman a la API simulan
   Axios con `vi.mock`. El detalle está en [`frontend/plan_de_pruebas.md`](frontend/plan_de_pruebas.md).
-- **Backend:** 15 pruebas con JUnit y DataFaker, incluidos los roles (`mvnw.cmd test` en la carpeta `backend/`).
+- **Backend:** 17 pruebas con JUnit y DataFaker, incluidos los roles y el registro (`mvnw.cmd test` en la carpeta `backend/`).
   No necesitan MySQL. El detalle está en [`backend/README.md`](backend/README.md#pruebas-junit--datafaker).
 
 ## Entregables de la Evaluación 3

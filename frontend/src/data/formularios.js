@@ -1,7 +1,7 @@
 // Campos de los formularios. Cada formulario recorre su arreglo con .map()
 // y dibuja un CampoFormulario por cada elemento.
 import {
-  categorias, marcas, tiposUsuario, comunas, instrumentos, nivelesMusicales,
+  categorias, marcas, comunas, instrumentos, nivelesMusicales,
   motivosContacto, tiposEntrega, mediosPago,
 } from './opciones'
 import { fechaHoy, restarAnios } from '../utils/formato'
@@ -21,7 +21,6 @@ export const camposRegistro = [
   { name: 'telefono', label: 'Teléfono (opcional):', type: 'tel', placeholder: '912345678' },
   { name: 'direccion', label: 'Dirección:', placeholder: 'Ingrese su dirección' },
   { name: 'comuna', label: 'Comuna:', as: 'select', opciones: comunas, placeholderOpcion: '-- SELECCIONE UNA COMUNA --' },
-  { name: 'tipoUsuario', label: 'Tipo de usuario:', as: 'select', opciones: tiposUsuario, placeholderOpcion: '-- SELECCIONE UN TIPO --' },
   { name: 'instrumento', label: 'Instrumento principal:', as: 'select', opciones: instrumentos, placeholderOpcion: '-- SELECCIONE UN INSTRUMENTO --' },
   { name: 'nivel', label: 'Nivel musical:', as: 'select', opciones: nivelesMusicales, placeholderOpcion: '-- SELECCIONE SU NIVEL --' },
   { name: 'contrasena', label: 'Contraseña:', type: 'password', placeholder: 'Ingrese su contraseña' },

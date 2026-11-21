@@ -71,7 +71,7 @@ export function validarLogin({ correo, contrasena }) {
 
 export function validarRegistro(datos) {
   const { run, nombre, apellidos, correo, fenac, telefono, direccion, comuna,
-    tipoUsuario, instrumento, nivel, contrasena, repetirContrasena } = datos
+    instrumento, nivel, contrasena, repetirContrasena } = datos
 
   if (estaVacio(run)) return error('run', 'El run no debe estar vacio')
   if (run.length < 7 || run.length > 9) return error('run', 'Largo del run no valido')
@@ -98,7 +98,6 @@ export function validarRegistro(datos) {
   if (direccion.length > 300) return error('direccion', 'La direccion no puede superar los 300 caracteres')
 
   if (estaVacio(comuna)) return error('comuna', 'Debe seleccionar una comuna')
-  if (estaVacio(tipoUsuario)) return error('tipoUsuario', 'Debe seleccionar un tipo de usuario')
   if (estaVacio(instrumento)) return error('instrumento', 'Debe seleccionar su instrumento principal')
   if (estaVacio(nivel)) return error('nivel', 'Debe seleccionar su nivel musical')
 

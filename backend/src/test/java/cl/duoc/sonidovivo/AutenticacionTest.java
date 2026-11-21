@@ -21,7 +21,7 @@ import com.jayway.jsonpath.JsonPath;
 import net.datafaker.Faker;
 
 /**
- * Pruebas de la autenticacion JWT y los roles: login, rutas publicas, 401 sin token
+ * Pruebas de la autenticacion JWT y los roles: login, registro, rutas publicas, 401 sin token
  * y 403 cuando el rol (USER) no tiene permiso.
  */
 @SpringBootTest
@@ -128,6 +128,43 @@ class AutenticacionTest {
                 .andExpect(status().isUnauthorized());
         // El producto sigue existiendo
         mockMvc.perform(get("/api/productos/1")).andExpect(status().isOk());
+    }
+
+    // JSON del formulario "Registrarse" con datos generados por DataFaker
+    private String registro(String run, String correo, String contrasena) {
+        return "{\"run\":\"" + run + "\",\"nombre\":\"" + faker.name().firstName()
+                + "\",\"apellidos\":\"" + faker.name().lastName() + "\",\"correo\":\"" + correo
+                + "\",\"telefono\":\"9" + faker.number().digits(8) + "\",\"direccion\":\"" + faker.address().streetAddress()
+                + "\",\"comunaId\":1,\"contrasena\":\"" + contrasena + "\"}";
+    }
+
+    @Test
+    void registroCreaUnaCuentaUserQuePuedeIniciarSesion() throws Exception {
+        String correo = faker.internet().emailAddress();
+        String contrasena = faker.internet().password(6, 10);
+
+        mockMvc.perform(post("/api/auth/registro")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(registro(faker.number().digits(8) + "K", correo, contrasena)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.rol").value("USER"));
+
+        // La cuenta nueva inicia sesion y su token es de rol USER: no puede ver clientes (403)
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(login(correo, contrasena)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rol").value("USER"));
+        mockMvc.perform(get("/api/clientes").header(HttpHeaders.AUTHORIZATION, bearer(correo, contrasena)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void registroConCorreoRepetidoResponde409() throws Exception {
+        mockMvc.perform(post("/api/auth/registro")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(registro(faker.number().digits(8) + "K", "admin@duoc.cl", "clave123")))
+                .andExpect(status().isConflict());
     }
 
     @Test

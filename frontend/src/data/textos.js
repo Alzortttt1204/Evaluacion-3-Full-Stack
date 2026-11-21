@@ -57,6 +57,8 @@ export const textosRegistro = {
   pregunta: '¿Ya tienes cuenta?',
   enlace: 'Inicia sesión aquí',
   exito: 'Registro realizado correctamente',
+  yaPuedeIngresar: 'Ya puedes iniciar sesión con tu correo y contraseña',
+  datosRepetidos: 'Ya existe una cuenta con ese correo o RUN',
 }
 
 export const textosAdmin = {
