@@ -29,7 +29,19 @@ public class Usuario {
     @Column(name = "contrasena", nullable = false)
     private String contrasena;
 
+    // Llave foranea a la tabla rol (1 = ADMIN, 2 = USER). Columna agregada en V4__agregar_rol_usuario.sql
+    @Column(name = "rol_id", nullable = false)
+    private Long rolId;
+
     public Usuario() {
+    }
+
+    public Long getRolId() {
+        return rolId;
+    }
+
+    public void setRolId(Long rolId) {
+        this.rolId = rolId;
     }
 
     public Long getId() {

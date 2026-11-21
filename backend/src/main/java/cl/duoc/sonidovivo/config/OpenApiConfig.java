@@ -17,9 +17,10 @@ import io.swagger.v3.oas.annotations.security.SecurityScheme;
 @OpenAPIDefinition(
         info = @Info(
                 title = "API Sonido Vivo",
-                version = "2.0",
+                version = "3.0",
                 description = "API REST de la tienda de instrumentos Sonido Vivo: productos, clientes y ventas. "
-                        + "Para POST, PUT y DELETE primero inicie sesion en /api/auth/login y use el boton Authorize."),
+                        + "Primero inicie sesion en /api/auth/login y use el boton Authorize con el token. "
+                        + "Roles: ADMIN (admin@duoc.cl / admin123) y USER (cliente@gmail.com / cliente123)."),
         security = @SecurityRequirement(name = "bearerAuth"))
 @SecurityScheme(
         name = "bearerAuth",

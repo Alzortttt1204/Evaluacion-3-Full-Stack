@@ -5,9 +5,11 @@ import java.util.List;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,10 +40,12 @@ public class JwtFiltro extends OncePerRequestFilter {
 
         if (encabezado != null && encabezado.startsWith(PREFIJO)) {
             String token = encabezado.substring(PREFIJO.length());
-            String correo = jwtServicio.obtenerCorreo(token);
-            if (correo != null) {
-                // Usuario autenticado para esta peticion (sin roles: List.of())
-                var autenticacion = new UsernamePasswordAuthenticationToken(correo, null, List.of());
+            Claims datos = jwtServicio.leerToken(token);
+            if (datos != null) {
+                // Spring Security reconoce los roles con el prefijo "ROLE_": ADMIN -> ROLE_ADMIN
+                var rol = new SimpleGrantedAuthority("ROLE_" + datos.get("rol", String.class));
+                // Usuario autenticado para esta peticion, con su rol
+                var autenticacion = new UsernamePasswordAuthenticationToken(datos.getSubject(), null, List.of(rol));
                 SecurityContextHolder.getContext().setAuthentication(autenticacion);
             }
         }

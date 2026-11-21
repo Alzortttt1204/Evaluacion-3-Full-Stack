@@ -1,4 +1,4 @@
-# Sonido Vivo — Backend (Semanas 1 y 2)
+# Sonido Vivo — Backend (Semanas 1, 2 y 3)
 
 API REST en **Spring Boot 3.5 + MySQL** para la tienda Sonido Vivo.
 Tres entidades JPA independientes (sin `@OneToMany`, `@ManyToOne` ni `@ManyToMany`): **Producto**, **Cliente** y **Venta**,
@@ -12,6 +12,9 @@ sobre una base de datos **normalizada a tercera forma normal (3FN)**.
 | **JWT** | Login con token; POST, PUT y DELETE exigen token | `security/`, `controller/AuthController.java` |
 | **Swagger + HATEOAS** | Documentación interactiva; los GET traen enlaces `_links` | `config/OpenApiConfig.java`, controladores |
 | **JUnit + DataFaker** | Pruebas con datos generados al azar | `src/test/java/` |
+
+**Semana 3** agrega **roles ADMIN y USER** (tabla `rol` en 3FN, migración V4) con permisos distintos en los endpoints,
+y la conexión con el frontend React (carpeta `../frontend`), que consume esta API con **Axios**.
 
 ## Requisitos
 
@@ -42,6 +45,7 @@ las entidades calcen con las tablas).
 | `V1__crear_tablas.sql` | Las 8 tablas normalizadas (PK, FK, `UNIQUE`, `CHECK`) y los catálogos |
 | `V2__datos_iniciales.sql` | Productos, clientes y ventas de ejemplo |
 | `V3__crear_usuario.sql` | Tabla `usuario` para el login, con el usuario de prueba |
+| `V4__agregar_rol_usuario.sql` | Tabla `rol` (ADMIN, USER), columna `usuario.rol_id` y el cliente de prueba |
 
 Flyway anota en la tabla `flyway_schema_history` qué versiones ya aplicó y solo ejecuta las nuevas.
 **Una migración ya aplicada no se edita**: cualquier cambio de la base va en un archivo nuevo (`V4__...sql`).
@@ -59,6 +63,7 @@ erDiagram
     PRODUCTO     ||--o{ VENTA    : "se vende en"
     MEDIO_PAGO   ||--o{ VENTA    : "se paga con"
     TIPO_ENTREGA ||--o{ VENTA    : "se entrega por"
+    ROL          ||--o{ USUARIO  : "tiene"
 
     CATEGORIA    { bigint id PK
                    varchar nombre UK }
@@ -93,9 +98,12 @@ erDiagram
                    int precio_unitario
                    bigint medio_pago_id FK
                    bigint tipo_entrega_id FK }
+    ROL          { bigint id PK
+                   varchar nombre UK }
     USUARIO      { bigint id PK
                    varchar correo UK
-                   varchar contrasena }
+                   varchar contrasena
+                   bigint rol_id FK }
 ```
 
 **Por qué está en 3FN:**
@@ -103,7 +111,7 @@ erDiagram
 - **1FN:** cada columna guarda un solo valor (atómico), no hay listas ni grupos repetidos, y cada tabla tiene llave primaria (`id`).
 - **2FN:** todas las llaves primarias son de una sola columna, así que cada atributo depende de la llave completa.
 - **3FN:** no hay dependencias transitivas, es decir, ningún atributo depende de otro que no sea la llave:
-  - Categoría, marca, comuna, medio de pago y tipo de entrega están en **tablas de tipos** propias. En las tablas principales
+  - Categoría, marca, comuna, medio de pago, tipo de entrega y **rol** están en **tablas de tipos** propias. En las tablas principales
     solo queda su `id` como llave foránea, así cada nombre se guarda una sola vez y no se repite texto.
   - La venta **no guarda el total**, porque es un dato calculado (`cantidad × precio_unitario`).
   - `precio_unitario` es el precio **al momento de la venta**, no una copia de `producto.precio`, que puede cambiar después.
@@ -111,7 +119,7 @@ erDiagram
 
 En la base de datos las relaciones existen como **llaves foráneas**. En Java, como pide la Semana 1, las entidades guardan
 esos ids como números simples (`categoriaId`, `comunaId`, `clienteId`...) sin anotaciones de relación JPA.
-La tabla `usuario` es independiente: solo se usa para el login.
+La tabla `usuario` solo se usa para el login; su rol se guarda como `rol_id` (1 = ADMIN, 2 = USER).
 
 ## 4. Configuración
 
@@ -125,30 +133,41 @@ En [`src/main/resources/application.properties`](src/main/resources/application.
 
 Sin `JWT_SECRET` todo funciona, pero los tokens dejan de servir cada vez que se reinicia la aplicación.
 
-## 5. Autenticación JWT
+## 5. Autenticación JWT y roles (ADMIN / USER)
 
-| Ruta | ¿Necesita token? |
-| :--- | :--- |
-| `POST /api/auth/login` | No |
-| Todos los `GET` | No (el catálogo es público) |
-| `POST`, `PUT`, `DELETE` de productos, clientes y ventas | **Sí** → sin token responde **401** |
-| Swagger (`/swagger-ui.html`, `/v3/api-docs`) | No |
+| Ruta | Sin token | USER | ADMIN |
+| :--- | :--- | :--- | :--- |
+| `POST /api/auth/login`, Swagger | ✅ | ✅ | ✅ |
+| `GET /api/productos` y `/api/productos/{id}` (catálogo) | ✅ | ✅ | ✅ |
+| `POST /api/ventas` (registrar una compra) | 401 | ✅ | ✅ |
+| `POST`, `PUT`, `DELETE` de productos | 401 | **403** | ✅ |
+| Todo lo de clientes y el resto de ventas (también los GET) | 401 | **403** | ✅ |
 
-**Usuario de prueba:** `admin@duoc.cl` / `admin123` (el mismo del frontend). En la tabla se guarda solo el hash
-BCrypt de la contraseña, nunca el texto.
+**401** = no envió token o el token no sirve. **403** = el token es válido, pero su rol no tiene permiso.
+
+**Usuarios de prueba** (los mismos del frontend). En la tabla se guarda solo el hash BCrypt de la contraseña, nunca el texto:
+
+| Correo | Contraseña | Rol |
+| :--- | :--- | :--- |
+| `admin@duoc.cl` | `admin123` | ADMIN |
+| `cliente@gmail.com` | `cliente123` | USER |
 
 Cómo funciona:
 
 1. `POST /api/auth/login` con `{ "correo": "admin@duoc.cl", "contrasena": "admin123" }` responde
-   `{ "token": "eyJhbGciOi...", "tipo": "Bearer", "expiraEnMinutos": 60 }` (o **401** si los datos no coinciden).
-2. En las siguientes peticiones se envía el encabezado `Authorization: Bearer <token>`.
-3. `JwtFiltro` revisa ese encabezado en cada petición: si la firma del token es válida y no venció, deja pasar.
-   `SeguridadConfig` define qué rutas son públicas y cuáles exigen token.
+   `{ "token": "eyJhbGciOi...", "tipo": "Bearer", "correo": "admin@duoc.cl", "rol": "ADMIN", "expiraEnMinutos": 60 }`
+   (o **401** si los datos no coinciden). El rol se busca en la tabla `rol` con el `rol_id` del usuario.
+2. El token lleva dentro el correo y el rol (`JwtServicio.generarToken`).
+3. En las siguientes peticiones se envía el encabezado `Authorization: Bearer <token>`.
+4. `JwtFiltro` revisa ese encabezado en cada petición: si la firma es válida y no venció, marca al usuario como
+   autenticado con su rol (`ROLE_ADMIN` o `ROLE_USER`).
+5. `SeguridadConfig` define qué rutas son públicas y qué rol exige cada una (`hasRole` / `hasAnyRole`).
 
 ## 6. Swagger y HATEOAS
 
 Con la aplicación corriendo, abrir **http://localhost:8080/swagger-ui.html**. Para probar POST, PUT y DELETE:
 ejecutar `POST /api/auth/login`, copiar el `token`, presionar **Authorize** y pegarlo.
+Para mostrar las restricciones por rol, repetir con el token de `cliente@gmail.com`: los POST de productos responden **403**.
 
 Los **GET** responden en formato **HATEOAS** (HAL): cada registro trae `_links` con la URL de sí mismo y de la lista,
 y la lista viene dentro de `_embedded`. Cada venta trae además enlaces a su cliente y a su producto:
@@ -173,14 +192,14 @@ backend/
     ├── java/cl/duoc/sonidovivo/
     │   ├── SonidoVivoApplication.java   Clase principal
     │   ├── config/       OpenApiConfig (Swagger + boton Authorize)
-    │   ├── model/        Entidades JPA: Producto, Cliente, Venta, Usuario
+    │   ├── model/        Entidades JPA: Producto, Cliente, Venta, Usuario, Rol
     │   ├── repository/   Interfaces que heredan de JpaRepository<Entidad, Long>
     │   ├── service/      Lógica CRUD (@Service, repositorio inyectado por constructor)
     │   ├── controller/   Controladores REST, AuthController (login) y ManejadorErrores
     │   └── security/     SeguridadConfig, JwtFiltro y JwtServicio
     └── resources/
         ├── application.properties
-        └── db/migration/ V1, V2 y V3 (Flyway)
+        └── db/migration/ V1, V2, V3 y V4 (Flyway)
 ```
 
 ## Endpoints
@@ -191,11 +210,12 @@ Los mismos 5 endpoints para cada entidad (`productos`, `clientes`, `ventas`):
 | :--- | :--- | :--- | :--- | :--- |
 | GET | `/api/productos` | Obtener todos | No | 200 + lista con `_links` |
 | GET | `/api/productos/{id}` | Buscar por ID | No | 200 con `_links`, o 404 |
-| POST | `/api/productos` | Crear nuevo | Sí | 201 + registro creado |
-| PUT | `/api/productos/{id}` | Actualizar existente | Sí | 200, o 404 si no existe |
-| DELETE | `/api/productos/{id}` | Eliminar por ID | Sí | 204, o 404 si no existe |
+| POST | `/api/productos` | Crear nuevo | ADMIN | 201 + registro creado |
+| PUT | `/api/productos/{id}` | Actualizar existente | ADMIN | 200, o 404 si no existe |
+| DELETE | `/api/productos/{id}` | Eliminar por ID | ADMIN | 204, o 404 si no existe |
 
 Cambiar `productos` por `clientes` o `ventas` para las otras entidades (15 endpoints en total), más `POST /api/auth/login`.
+En clientes y ventas también los GET piden token de ADMIN, y `POST /api/ventas` acepta USER o ADMIN (tabla de la sección 5).
 
 Si la operación rompe una regla de la base de datos, la API responde **409 Conflict** con un mensaje.
 Por ejemplo: un `categoriaId` que no existe, un RUN o correo repetido, o eliminar un cliente que tiene ventas.
@@ -233,10 +253,10 @@ Los ids de los catálogos están comentados en [`V2__datos_iniciales.sql`](src/m
 ```
 
 Usan una base **H2 en memoria** (configurada solo en `src/test/resources`), así que no necesitan MySQL encendido.
-Flyway ejecuta sobre H2 **las mismas migraciones** V1, V2 y V3. Los datos de cada registro de prueba (nombres,
+Flyway ejecuta sobre H2 **las mismas migraciones** V1, V2, V3 y V4. Los datos de cada registro de prueba (nombres,
 direcciones, precios, fechas...) los genera **DataFaker** al azar en cada ejecución.
 
 | Clase | Qué prueba |
 | :--- | :--- |
-| `CrudEndpointsTest` (5) | Los 5 endpoints de Producto, Cliente y Venta con token y datos de DataFaker, los enlaces HATEOAS y el 409 |
-| `AutenticacionTest` (7) | Login correcto e incorrecto, GET públicos, 401 sin token o con token falso, y Swagger público |
+| `CrudEndpointsTest` (5) | Los 5 endpoints de Producto, Cliente y Venta con token de ADMIN y datos de DataFaker, los enlaces HATEOAS y el 409 |
+| `AutenticacionTest` (10) | Login correcto (con su rol) e incorrecto, catálogo público, 401 sin token o con token falso, 403 para USER en productos y clientes, USER puede registrar una venta, y Swagger público |

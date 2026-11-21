@@ -14,9 +14,11 @@ import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
- * Reglas de seguridad de la API:
- * - Publico: login, Swagger y todos los GET (el catalogo se puede ver sin iniciar sesion).
- * - Con token JWT: POST, PUT y DELETE (crear, modificar y eliminar).
+ * Reglas de seguridad de la API (roles ADMIN y USER, que vienen dentro del token JWT):
+ * - Publico: login, Swagger y GET de productos (el catalogo se ve sin iniciar sesion).
+ * - USER o ADMIN: registrar una venta (POST /api/ventas), es decir, comprar.
+ * - Solo ADMIN: todo lo demas (crear, editar y eliminar productos; ver y modificar clientes y ventas).
+ * Sin token -> 401 Unauthorized. Con token pero sin el rol necesario -> 403 Forbidden.
  */
 @Configuration
 public class SeguridadConfig {
@@ -34,7 +36,9 @@ public class SeguridadConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/error").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/productos/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/ventas").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 // Sin token (o token invalido) en una ruta protegida: 401 Unauthorized
                 .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))

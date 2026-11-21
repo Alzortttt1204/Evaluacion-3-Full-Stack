@@ -8,6 +8,7 @@ import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -35,27 +36,27 @@ public class JwtServicio {
         this.expiracionMinutos = expiracionMinutos;
     }
 
-    // Genera un token con el correo del usuario como "subject" y una fecha de expiracion
-    public String generarToken(String correo) {
+    // Genera un token con el correo como "subject", el rol (ADMIN o USER) y una fecha de expiracion
+    public String generarToken(String correo, String rol) {
         Date ahora = new Date();
         Date expira = new Date(ahora.getTime() + expiracionMinutos * 60_000);
         return Jwts.builder()
                 .subject(correo)
+                .claim("rol", rol)
                 .issuedAt(ahora)
                 .expiration(expira)
                 .signWith(clave)
                 .compact();
     }
 
-    // Devuelve el correo si el token es valido (firma correcta y no vencido), o null si no lo es
-    public String obtenerCorreo(String token) {
+    // Devuelve los datos (claims) del token si es valido (firma correcta y no vencido), o null si no lo es
+    public Claims leerToken(String token) {
         try {
             return Jwts.parser()
                     .verifyWith(clave)
                     .build()
                     .parseSignedClaims(token)
-                    .getPayload()
-                    .getSubject();
+                    .getPayload();
         } catch (JwtException | IllegalArgumentException e) {
             return null;
         }

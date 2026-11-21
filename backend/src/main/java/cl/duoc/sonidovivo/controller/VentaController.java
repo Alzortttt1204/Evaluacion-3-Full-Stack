@@ -27,7 +27,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RestController
 @RequestMapping("/api/ventas")
 @CrossOrigin(origins = "http://localhost:5173") // frontend React (Vite)
-@Tag(name = "Ventas", description = "CRUD de ventas. GET es publico; POST, PUT y DELETE requieren token JWT")
+@Tag(name = "Ventas", description = "CRUD de ventas. POST acepta token de USER o ADMIN; el resto requiere ADMIN")
 public class VentaController {
 
     private final VentaService ventaService;
@@ -47,7 +47,7 @@ public class VentaController {
     }
 
     // GET /api/ventas -> lista todos (con enlaces HATEOAS)
-    @Operation(summary = "Listar ventas")
+    @Operation(summary = "Listar ventas (requiere ADMIN)")
     @GetMapping
     public CollectionModel<EntityModel<Venta>> obtenerTodos() {
         List<EntityModel<Venta>> ventas = ventaService.obtenerTodos().stream()
@@ -58,7 +58,7 @@ public class VentaController {
     }
 
     // GET /api/ventas/{id} -> busca uno (404 si no existe)
-    @Operation(summary = "Buscar venta por id")
+    @Operation(summary = "Buscar venta por id (requiere ADMIN)")
     @GetMapping("/{id}")
     public ResponseEntity<EntityModel<Venta>> buscarPorId(@PathVariable Long id) {
         return ventaService.buscarPorId(id)
@@ -68,14 +68,14 @@ public class VentaController {
     }
 
     // POST /api/ventas -> crea uno nuevo (201)
-    @Operation(summary = "Crear venta (requiere token)")
+    @Operation(summary = "Crear venta (USER o ADMIN)")
     @PostMapping
     public ResponseEntity<Venta> crear(@RequestBody Venta venta) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ventaService.guardar(venta));
     }
 
     // PUT /api/ventas/{id} -> actualiza uno existente (404 si no existe)
-    @Operation(summary = "Actualizar venta (requiere token)")
+    @Operation(summary = "Actualizar venta (requiere ADMIN)")
     @PutMapping("/{id}")
     public ResponseEntity<Venta> actualizar(@PathVariable Long id, @RequestBody Venta venta) {
         return ventaService.actualizar(id, venta)
@@ -84,7 +84,7 @@ public class VentaController {
     }
 
     // DELETE /api/ventas/{id} -> elimina uno (204, o 404 si no existe)
-    @Operation(summary = "Eliminar venta (requiere token)")
+    @Operation(summary = "Eliminar venta (requiere ADMIN)")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         if (ventaService.eliminar(id)) {

@@ -117,7 +117,7 @@ class CrudEndpointsTest {
     @Test
     void ventaTraeEnlacesAClienteYProducto() throws Exception {
         // La venta 1 (de V2) es del cliente 1 y el producto 1
-        mockMvc.perform(get("/api/ventas/1"))
+        mockMvc.perform(get("/api/ventas/1").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._links.self.href").value("http://localhost/api/ventas/1"))
                 .andExpect(jsonPath("$._links.cliente.href").value("http://localhost/api/clientes/1"))
@@ -153,14 +153,14 @@ class CrudEndpointsTest {
                 .andReturn().getResponse().getContentAsString();
         Number id = JsonPath.read(respuesta, "$.id");
 
-        // GET: listar todos (publico) -> formato HATEOAS: _embedded con la lista y _links
-        mockMvc.perform(get(url))
+        // GET: listar todos (con token de ADMIN) -> formato HATEOAS: _embedded con la lista y _links
+        mockMvc.perform(get(url).header(HttpHeaders.AUTHORIZATION, bearer))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._embedded." + nombreLista).isArray())
                 .andExpect(jsonPath("$._links.self.href").value("http://localhost" + url));
 
-        // GET: buscar por id (publico) -> trae enlace a si mismo
-        mockMvc.perform(get(url + "/" + id))
+        // GET: buscar por id (con token de ADMIN) -> trae enlace a si mismo
+        mockMvc.perform(get(url + "/" + id).header(HttpHeaders.AUTHORIZATION, bearer))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id))
                 .andExpect(jsonPath("$._links.self.href").value("http://localhost" + url + "/" + id));
@@ -176,7 +176,7 @@ class CrudEndpointsTest {
         // DELETE: eliminar (con token), y luego ya no existe
         mockMvc.perform(delete(url + "/" + id).header(HttpHeaders.AUTHORIZATION, bearer))
                 .andExpect(status().isNoContent());
-        mockMvc.perform(get(url + "/" + id)).andExpect(status().isNotFound());
+        mockMvc.perform(get(url + "/" + id).header(HttpHeaders.AUTHORIZATION, bearer)).andExpect(status().isNotFound());
         mockMvc.perform(put(url + "/" + id)
                         .header(HttpHeaders.AUTHORIZATION, bearer)
                         .contentType(MediaType.APPLICATION_JSON)

@@ -27,7 +27,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RestController
 @RequestMapping("/api/productos")
 @CrossOrigin(origins = "http://localhost:5173") // frontend React (Vite)
-@Tag(name = "Productos", description = "CRUD de productos. GET es publico; POST, PUT y DELETE requieren token JWT")
+@Tag(name = "Productos", description = "CRUD de productos. GET es publico; POST, PUT y DELETE requieren token de ADMIN")
 public class ProductoController {
 
     private final ProductoService productoService;
@@ -65,14 +65,14 @@ public class ProductoController {
     }
 
     // POST /api/productos -> crea uno nuevo (201)
-    @Operation(summary = "Crear producto (requiere token)")
+    @Operation(summary = "Crear producto (requiere ADMIN)")
     @PostMapping
     public ResponseEntity<Producto> crear(@RequestBody Producto producto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(productoService.guardar(producto));
     }
 
     // PUT /api/productos/{id} -> actualiza uno existente (404 si no existe)
-    @Operation(summary = "Actualizar producto (requiere token)")
+    @Operation(summary = "Actualizar producto (requiere ADMIN)")
     @PutMapping("/{id}")
     public ResponseEntity<Producto> actualizar(@PathVariable Long id, @RequestBody Producto producto) {
         return productoService.actualizar(id, producto)
@@ -81,7 +81,7 @@ public class ProductoController {
     }
 
     // DELETE /api/productos/{id} -> elimina uno (204, o 404 si no existe)
-    @Operation(summary = "Eliminar producto (requiere token)")
+    @Operation(summary = "Eliminar producto (requiere ADMIN)")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         if (productoService.eliminar(id)) {
