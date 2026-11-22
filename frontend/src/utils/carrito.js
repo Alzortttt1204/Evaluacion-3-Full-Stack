@@ -1,3 +1,5 @@
+import { mediosPago, tiposEntrega } from '../data/opciones'
+
 // Funciones del carrito de compras.
 // No modifican el carrito recibido: siempre devuelven un arreglo nuevo,
 // que es lo que necesita useState para detectar el cambio.
@@ -45,4 +47,13 @@ export function calcularTotal(carrito) {
 
 export function contarUnidades(carrito) {
   return carrito.reduce((total, item) => total + item.cantidad, 0)
+}
+
+// Convierte el carrito en las ventas que espera POST /api/ventas: una por producto
+// (la tabla venta guarda un producto por fila). Medio de pago y tipo de entrega se envían
+// como id: su posición en la lista + 1, igual que sus tablas. El precio no se envía: lo pone el backend.
+export function haciaApiVentas(carrito, datosCompra) {
+  const medioPagoId = mediosPago.findIndex((medio) => medio.valor === datosCompra.pago) + 1
+  const tipoEntregaId = tiposEntrega.findIndex((tipo) => tipo.valor === datosCompra.entrega) + 1
+  return carrito.map((item) => ({ productoId: item.id, cantidad: item.cantidad, medioPagoId, tipoEntregaId }))
 }

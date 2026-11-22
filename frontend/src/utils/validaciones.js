@@ -70,7 +70,7 @@ export function validarLogin({ correo, contrasena }) {
 }
 
 export function validarRegistro(datos) {
-  const { run, nombre, apellidos, correo, fenac, telefono, direccion, comuna,
+  const { run, nombre, apellidoPaterno, apellidoMaterno, correo, fenac, telefono, direccion, comuna,
     instrumento, nivel, contrasena, repetirContrasena } = datos
 
   if (estaVacio(run)) return error('run', 'El run no debe estar vacio')
@@ -80,8 +80,14 @@ export function validarRegistro(datos) {
   const errorNombre = validarTextoPersona('nombre', nombre, 'un nombre', 50)
   if (errorNombre) return errorNombre
 
-  const errorApellidos = validarTextoPersona('apellidos', apellidos, 'sus apellidos', 100)
-  if (errorApellidos) return errorApellidos
+  const errorPaterno = validarTextoPersona('apellidoPaterno', apellidoPaterno, 'su apellido paterno', 50)
+  if (errorPaterno) return errorPaterno
+
+  // El apellido materno es opcional: solo se revisa si se escribió
+  if (!estaVacio(apellidoMaterno)) {
+    const errorMaterno = validarTextoPersona('apellidoMaterno', apellidoMaterno, 'su apellido materno', 50)
+    if (errorMaterno) return errorMaterno
+  }
 
   const errorCorreo = validarCorreo(correo)
   if (errorCorreo) return errorCorreo

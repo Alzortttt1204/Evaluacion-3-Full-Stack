@@ -14,7 +14,8 @@ function escribir(etiqueta, valor) {
 function completarDatosBase() {
   escribir('RUN (sin puntos ni guión):', '19011022K')
   escribir('Nombre:', 'Ignacio')
-  escribir('Apellidos:', 'Hidalgo Soto')
+  escribir('Apellido paterno:', 'Hidalgo')
+  escribir('Apellido materno (opcional):', 'Soto')
   escribir('Correo electrónico:', 'ignacio@duoc.cl')
   escribir('Dirección:', 'Av. Libertad 100')
   escribir('Comuna:', 'Viña del Mar')
@@ -60,7 +61,7 @@ describe('FormularioRegistro', () => {
     // Assert
     expect(await screen.findByText(/Registro realizado correctamente/)).toBeInTheDocument()
     expect(AuthService.registrar).toHaveBeenCalledWith({
-      run: '19011022K', nombre: 'Ignacio', apellidos: 'Hidalgo Soto', correo: 'ignacio@duoc.cl',
+      run: '19011022K', nombre: 'Ignacio', apellidoPaterno: 'Hidalgo', apellidoMaterno: 'Soto', correo: 'ignacio@duoc.cl',
       telefono: null, direccion: 'Av. Libertad 100', comunaId: 1, contrasena: 'clave1',
     })
     expect(screen.getByLabelText('Nombre:')).toHaveValue('')

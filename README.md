@@ -24,7 +24,7 @@ Los dos proyectos están **separados** y se ejecutan por separado (backend en In
 - **Semana 2:** migraciones con **Flyway**, autenticación con **JWT**, documentación con **Swagger** y respuestas
   **HATEOAS** en los GET, y pruebas **JUnit** con datos generados por **DataFaker**.
 - **Semana 3:** roles **ADMIN** y **USER** (tabla `rol` normalizada, migración V4), permisos por rol en los endpoints
-  y conexión con el frontend React mediante **Axios**.
+  y conexión con el frontend React mediante **Axios**. El cliente guarda apellido paterno y materno por separado (1FN, migración V5).
 
 Endpoints, permisos por rol y modelo de datos en [`backend/README.md`](backend/README.md).
 
@@ -60,7 +60,7 @@ npm run build    # versión de producción en la carpeta dist/
 | Rol | Correo | Contraseña | En la web puede | En la API puede |
 | :--- | :--- | :--- | :--- | :--- |
 | **ADMIN** | `admin@duoc.cl` | `admin123` | Mi Perfil y Panel de Control (CRUD de productos) | Todo |
-| **USER** | `cliente@gmail.com` | `cliente123` | Mi Perfil (si entra al Panel, lo redirige a su perfil) | Ver productos y registrar ventas; el resto responde **403** |
+| **USER** | `cliente@gmail.com` | `cliente123` | Mi Perfil (si entra al Panel, lo redirige a su perfil) | Ver productos y comprar (su venta se guarda en MySQL); el resto responde **403** |
 
 ## Integración frontend + backend (Axios)
 
@@ -72,6 +72,7 @@ npm run build    # versión de producción en la carpeta dist/
 | Crear producto (Panel de Control) | `POST /api/productos` con `Authorization: Bearer <token>` | `ProductoService.js`, `pages/Admin.jsx` |
 | Editar producto | `PUT /api/productos/{id}` con token | `ProductoService.js`, `pages/Admin.jsx` |
 | Eliminar producto | `DELETE /api/productos/{id}` con token | `ProductoService.js`, `pages/Admin.jsx` |
+| Confirmar compra (Carrito, rol USER) | `POST /api/ventas` con token, una venta por producto; el backend pone cliente, precio y fecha, y descuenta el stock | `services/VentaService.js`, `pages/Carrito.jsx` |
 | Cerrar sesión | Borra la sesión de `localStorage` (sin token el backend responde 401) | `utils/sesion.js` |
 
 - **Persistencia de la sesión:** el token queda en `localStorage`, así la sesión sigue al recargar la página.
@@ -126,7 +127,7 @@ frontend/src/
 
 ## Funcionalidades con estado (useState)
 
-1. **Carrito de compras:** agregar, cambiar cantidad, eliminar, vaciar, total y checkout simulado.
+1. **Carrito de compras:** agregar, cambiar cantidad, eliminar, vaciar y total. Al confirmar, la compra se guarda en MySQL (exige iniciar sesión como cliente; el pago es simulado).
 2. **Filtro dinámico del catálogo:** por nombre/marca y por categoría.
 3. **Favoritos:** se marcan en las tarjetas y en el detalle, y se listan en Mi Perfil.
 4. **Tema claro / oscuro:** botón en el menú (el oscuro es el diseño original).
@@ -153,16 +154,16 @@ muestra el primer error debajo del campo y deja el cursor en él.
 
 Campos de contexto de una tienda de música agregados:
 
-- **Registro:** teléfono, comuna, instrumento principal y nivel musical.
+- **Registro:** apellido paterno y materno por separado (el materno es opcional), teléfono, comuna, instrumento principal y nivel musical.
 - **Contacto:** motivo de contacto e instrumento de interés.
 - **Panel de Control:** marca, categoría, precio y stock del producto.
 - **Checkout:** tipo de entrega (retiro en tienda o despacho), comuna, dirección y medio de pago.
 
 ## Pruebas
 
-- **Frontend:** 41 pruebas unitarias con Vitest, todas con el patrón AAA. Las que llaman a la API simulan
+- **Frontend:** 45 pruebas unitarias con Vitest, todas con el patrón AAA. Las que llaman a la API simulan
   Axios con `vi.mock`. El detalle está en [`frontend/plan_de_pruebas.md`](frontend/plan_de_pruebas.md).
-- **Backend:** 17 pruebas con JUnit y DataFaker, incluidos los roles y el registro (`mvnw.cmd test` en la carpeta `backend/`).
+- **Backend:** 19 pruebas con JUnit y DataFaker, incluidos los roles, el registro, la compra y la migración V5 (`mvnw.cmd test` en la carpeta `backend/`).
   No necesitan MySQL. El detalle está en [`backend/README.md`](backend/README.md#pruebas-junit--datafaker).
 
 ## Entregables de la Evaluación 3

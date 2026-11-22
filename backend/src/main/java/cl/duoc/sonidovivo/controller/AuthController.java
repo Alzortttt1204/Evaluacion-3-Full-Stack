@@ -32,7 +32,8 @@ public class AuthController {
     }
 
     // Datos del formulario "Registrarse": los de la tabla cliente + la contrasena de la cuenta
-    public record RegistroRequest(String run, String nombre, String apellidos, String correo, String telefono,
+    public record RegistroRequest(String run, String nombre, String apellidoPaterno, String apellidoMaterno,
+                                  String correo, String telefono,
                                   String direccion, Long comunaId, String contrasena) {
     }
 
@@ -62,7 +63,7 @@ public class AuthController {
     @PostMapping("/registro")
     @Transactional // si falla el cliente o el usuario, no se guarda ninguno de los dos
     public ResponseEntity<Map<String, Object>> registro(@RequestBody RegistroRequest datos) {
-        if (vacio(datos.run()) || vacio(datos.nombre()) || vacio(datos.apellidos()) || vacio(datos.correo())
+        if (vacio(datos.run()) || vacio(datos.nombre()) || vacio(datos.apellidoPaterno()) || vacio(datos.correo())
                 || vacio(datos.contrasena()) || datos.comunaId() == null) {
             return ResponseEntity.badRequest().body(Map.of("error", "Faltan datos obligatorios"));
         }
@@ -76,7 +77,8 @@ public class AuthController {
         Cliente cliente = new Cliente();
         cliente.setRun(datos.run());
         cliente.setNombre(datos.nombre());
-        cliente.setApellidos(datos.apellidos());
+        cliente.setApellidoPaterno(datos.apellidoPaterno());
+        cliente.setApellidoMaterno(vacio(datos.apellidoMaterno()) ? null : datos.apellidoMaterno());
         cliente.setCorreo(correo);
         cliente.setTelefono(datos.telefono());
         cliente.setDireccion(datos.direccion());

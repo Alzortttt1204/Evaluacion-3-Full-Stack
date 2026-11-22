@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Convierte los errores de la base de datos en una respuesta clara (409 Conflict) en vez de un error 500.
@@ -22,5 +23,11 @@ public class ManejadorErrores {
                 "error", "La operacion no cumple las reglas de la base de datos: "
                         + "revise que los ids relacionados existan, que no haya datos repetidos "
                         + "(RUN, correo) y que el registro no este siendo usado por otra tabla."));
+    }
+
+    // Errores de reglas del negocio (por ejemplo, una compra sin stock): se responde su codigo y su mensaje
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, String>> errorDeRegla(ResponseStatusException ex) {
+        return ResponseEntity.status(ex.getStatusCode()).body(Map.of("error", String.valueOf(ex.getReason())));
     }
 }

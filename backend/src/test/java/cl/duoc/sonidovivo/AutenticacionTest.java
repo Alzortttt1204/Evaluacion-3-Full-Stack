@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDate;
 import java.util.Locale;
 
 import org.junit.jupiter.api.Test;
@@ -103,14 +104,34 @@ class AutenticacionTest {
     }
 
     @Test
-    void usuarioUserPuedeRegistrarUnaVenta() throws Exception {
-        String bearerUser = bearer("cliente@gmail.com", "cliente123");
+    void compraDeUserUsaSuClienteYElPrecioRealYDescuentaStock() throws Exception {
+        String bearerUser = bearer("cliente@gmail.com", "cliente123");   // su ficha es el cliente 1
+        int stockAntes = JsonPath.read(mockMvc.perform(get("/api/productos/8"))
+                .andReturn().getResponse().getContentAsString(), "$.stock");
+
+        // Intenta comprar a nombre del cliente 2 y a $1: el backend lo ignora
         mockMvc.perform(post("/api/ventas")
                         .header(HttpHeaders.AUTHORIZATION, bearerUser)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"fecha\":\"2026-11-21\",\"clienteId\":1,\"productoId\":1,\"cantidad\":1,"
-                                + "\"precioUnitario\":349990,\"medioPagoId\":2,\"tipoEntregaId\":1}"))
-                .andExpect(status().isCreated());
+                        .content("{\"clienteId\":2,\"productoId\":8,\"cantidad\":2,"
+                                + "\"precioUnitario\":1,\"medioPagoId\":2,\"tipoEntregaId\":1}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.clienteId").value(1))
+                .andExpect(jsonPath("$.precioUnitario").value(14990))
+                .andExpect(jsonPath("$.fecha").value(LocalDate.now().toString()));
+
+        mockMvc.perform(get("/api/productos/8"))
+                .andExpect(jsonPath("$.stock").value(stockAntes - 2));
+    }
+
+    @Test
+    void compraSinStockSuficienteResponde409() throws Exception {
+        mockMvc.perform(post("/api/ventas")
+                        .header(HttpHeaders.AUTHORIZATION, bearer("cliente@gmail.com", "cliente123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"productoId\":3,\"cantidad\":999,\"medioPagoId\":1,\"tipoEntregaId\":1}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("No hay stock suficiente de Bateria Acustica 5 Piezas"));
     }
 
     @Test
@@ -133,7 +154,8 @@ class AutenticacionTest {
     // JSON del formulario "Registrarse" con datos generados por DataFaker
     private String registro(String run, String correo, String contrasena) {
         return "{\"run\":\"" + run + "\",\"nombre\":\"" + faker.name().firstName()
-                + "\",\"apellidos\":\"" + faker.name().lastName() + "\",\"correo\":\"" + correo
+                + "\",\"apellidoPaterno\":\"" + faker.name().lastName() + "\",\"apellidoMaterno\":\"" + faker.name().lastName()
+                + "\",\"correo\":\"" + correo
                 + "\",\"telefono\":\"9" + faker.number().digits(8) + "\",\"direccion\":\"" + faker.address().streetAddress()
                 + "\",\"comunaId\":1,\"contrasena\":\"" + contrasena + "\"}";
     }

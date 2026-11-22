@@ -14,7 +14,9 @@ export const camposLogin = [
 export const camposRegistro = [
   { name: 'run', label: 'RUN (sin puntos ni guión):', placeholder: '19011022K' },
   { name: 'nombre', label: 'Nombre:', placeholder: 'Ingrese su nombre' },
-  { name: 'apellidos', label: 'Apellidos:', placeholder: 'Ingrese sus apellidos' },
+  // 1FN: cada apellido es un dato distinto (el materno es opcional)
+  { name: 'apellidoPaterno', label: 'Apellido paterno:', placeholder: 'Ingrese su apellido paterno' },
+  { name: 'apellidoMaterno', label: 'Apellido materno (opcional):', placeholder: 'Ingrese su apellido materno' },
   { name: 'correo', label: 'Correo electrónico:', type: 'email', placeholder: 'tucorreo@duoc.cl' },
   // min y max hacen que el calendario no deje elegir fechas fuera del rango (13 a 120 años)
   { name: 'fenac', label: 'Fecha de nacimiento (opcional):', type: 'date', min: restarAnios(fechaHoy(), 120), max: restarAnios(fechaHoy(), 13) },

@@ -9,7 +9,7 @@ function PedidoConfirmado({ pedido }) {
   return (
     <Seccion id="pedido-confirmado" titulo={textosCarrito.pedidoConfirmado}>
       <p>Gracias por tu compra, {pedido.nombre}. Te enviaremos el detalle a {pedido.correo}.</p>
-      <DatoEtiquetado etiqueta="N° de pedido" valor={pedido.numero} />
+      <DatoEtiquetado etiqueta="N° de venta (MySQL)" valor={pedido.numero} />
       <DatoEtiquetado etiqueta="Productos" valor={`${pedido.unidades} unidad(es)`} />
       <DatoEtiquetado etiqueta="Total pagado" valor={formatearPrecio(pedido.total)} />
       <DatoEtiquetado etiqueta="Entrega" valor={textoDeOpcion(tiposEntrega, pedido.entrega)} />

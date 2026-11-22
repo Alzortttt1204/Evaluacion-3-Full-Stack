@@ -1,6 +1,6 @@
 -- =====================================================================
 -- Sonido Vivo - Script completo para crear y poblar la base de datos MySQL.
--- Es la union de las migraciones Flyway V1, V2, V3 y V4
+-- Es la union de las migraciones Flyway V1, V2, V3, V4 y V5
 -- (backend/src/main/resources/db/migration), en el mismo orden.
 --
 -- IMPORTANTE: para EJECUTAR el proyecto NO hace falta importar este script.
@@ -205,3 +205,27 @@ UPDATE usuario SET rol_id = 1 WHERE correo = 'admin@duoc.cl';
 INSERT INTO usuario (correo, contrasena, rol_id) VALUES
   ('cliente@gmail.com', '$2a$10$ObIvGklM/fg9KY/ML/2eFezvVREkBrgKy3d.jzOPO5bUmLxnF63Dy', 2);
 
+-- =====================================================================
+-- V5 - Primera forma normal (1FN) en cliente: "apellidos" guardaba dos
+-- datos en una sola columna (paterno y materno). Se separa en
+-- apellido_paterno (obligatorio) y apellido_materno (opcional, hay
+-- personas con un solo apellido).
+-- No se edita V1 (ya aplicada): el cambio va en esta migracion nueva.
+-- =====================================================================
+
+ALTER TABLE cliente ADD COLUMN apellido_paterno VARCHAR(50) NOT NULL DEFAULT '' AFTER nombre;
+ALTER TABLE cliente ADD COLUMN apellido_materno VARCHAR(50) NULL AFTER apellido_paterno;
+
+-- Reparte los datos existentes: lo que esta antes del primer espacio es el paterno, el resto el materno
+UPDATE cliente SET
+  apellido_paterno = CASE WHEN LOCATE(' ', TRIM(apellidos)) > 0
+                          THEN SUBSTRING(TRIM(apellidos), 1, LOCATE(' ', TRIM(apellidos)) - 1)
+                          ELSE TRIM(apellidos) END,
+  apellido_materno = CASE WHEN LOCATE(' ', TRIM(apellidos)) > 0
+                          THEN TRIM(SUBSTRING(TRIM(apellidos), LOCATE(' ', TRIM(apellidos)) + 1))
+                          ELSE NULL END;
+
+-- El valor por defecto solo servia para agregar la columna a filas existentes
+ALTER TABLE cliente ALTER COLUMN apellido_paterno DROP DEFAULT;
+
+ALTER TABLE cliente DROP COLUMN apellidos;

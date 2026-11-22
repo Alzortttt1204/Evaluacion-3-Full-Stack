@@ -25,8 +25,12 @@ public class Cliente {
     @Column(name = "nombre", nullable = false)
     private String nombre;
 
-    @Column(name = "apellidos", nullable = false)
-    private String apellidos;
+    // 1FN: cada apellido en su propia columna (el materno es opcional)
+    @Column(name = "apellido_paterno", nullable = false)
+    private String apellidoPaterno;
+
+    @Column(name = "apellido_materno")
+    private String apellidoMaterno;
 
     @Column(name = "correo", nullable = false)
     private String correo;
@@ -68,12 +72,20 @@ public class Cliente {
         this.nombre = nombre;
     }
 
-    public String getApellidos() {
-        return apellidos;
+    public String getApellidoPaterno() {
+        return apellidoPaterno;
     }
 
-    public void setApellidos(String apellidos) {
-        this.apellidos = apellidos;
+    public void setApellidoPaterno(String apellidoPaterno) {
+        this.apellidoPaterno = apellidoPaterno;
+    }
+
+    public String getApellidoMaterno() {
+        return apellidoMaterno;
+    }
+
+    public void setApellidoMaterno(String apellidoMaterno) {
+        this.apellidoMaterno = apellidoMaterno;
     }
 
     public String getCorreo() {

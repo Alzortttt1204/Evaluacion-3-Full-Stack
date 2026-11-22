@@ -7,13 +7,11 @@ import { textosCarrito } from '../../data/textos'
 import { validarCheckout } from '../../utils/validaciones'
 import { enfocarCampo } from '../../utils/formato'
 
-// Si hay sesión iniciada, se rellenan nombre, correo y teléfono con los datos del usuario
+// Si hay sesión iniciada se rellena el correo (la sesión guarda { correo, rol, token })
 function valoresIniciales(sesion) {
   const valores = valoresVacios(camposCheckout)
   if (sesion) {
-    valores.nombre = `${sesion.nombre} ${sesion.apellidos}`
     valores.correo = sesion.correo
-    valores.telefono = sesion.telefono
   }
   return valores
 }

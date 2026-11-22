@@ -30,6 +30,7 @@ el backend con JUnit (`backend/src/test`).
 | :--- | :--- | :--- |
 | Validaciones | Reglas de login, registro (incluida la fecha de nacimiento), producto y checkout | `src/utils/validaciones.test.js` |
 | Carrito | Agregar, respetar stock, total y quitar productos | `src/utils/carrito.test.js` |
+| Compra | Sin sesión pide login; compra enviada a la API; error 409 sin stock (servicio Axios simulado) | `src/pages/Carrito.test.jsx` |
 | Catálogo | Filtro por texto/categoría y conversión de productos entre el backend y React | `src/utils/productos.test.js` |
 | Sesión | Token JWT y uso de `localStorage` | `src/utils/sesion.test.js` |
 | Tarjeta de producto | Favorito, agregar al carrito y formato de precio | `src/components/molecules/TarjetaProducto.test.jsx` |
@@ -106,14 +107,18 @@ npx vitest run      # una sola ejecución (la que se usó para este plan)
 | PU-039 | validaciones de la fecha de nacimiento | Rechaza una fecha de nacimiento de mañana, incluso a las 22:30 | Fecha del sistema fijada en 16-10-2026 22:30 (`vi.setSystemTime`); registro válido con `fenac: '2026-10-17'` | Llamar a `validarRegistro` | Error en `fenac`: "La fecha de nacimiento no puede ser posterior a hoy" (antes, de noche, esta fecha pasaba por la diferencia con UTC) | ✅ Pasa |
 | PU-040 | validaciones de la fecha de nacimiento | Exige entre 13 y 120 años | Fecha del sistema fijada en 16-10-2026; tres registros con fechas 2015-01-01, 1890-05-10 y 2004-03-21 | Llamar a `validarRegistro` con cada uno | 2015 → "Debe tener al menos 13 años para registrarse"; 1890 → error en `fenac`; 2004 → `null` (válida) | ✅ Pasa |
 | PU-041 | FormularioRegistro | Correo o RUN ya registrados | `AuthService.registrar` simulado rechazando con 409; todos los campos completos | Click en "Registrarme" | Mensaje "Ya existe una cuenta con ese correo o RUN" y los datos quedan en el formulario | ✅ Pasa |
+| PU-042 | validaciones del registro | Apellidos separados (1FN) | Registro válido sin paterno, sin materno y con materno "Soto2" | Llamar a `validarRegistro` con cada uno | Sin paterno → "Debe ingresar su apellido paterno"; sin materno → `null` (es opcional); "Soto2" → error en `apellidoMaterno` | ✅ Pasa |
+| PU-043 | Carrito | Comprar exige sesión | Carrito con 1 producto y sin sesión | Abrir el carrito | Mensaje "Para confirmar la compra debes iniciar sesión..." y no aparece el botón "Confirmar compra" | ✅ Pasa |
+| PU-044 | Carrito | Compra guardada en la API | `VentaService.crear` simulado (responde 201 con id 15); sesión USER; 2 unidades del producto 8 | Completar el checkout (retiro, débito) y "Confirmar compra" | Se llama a `crear` con `{ productoId: 8, cantidad: 2, medioPagoId: 2, tipoEntregaId: 1 }`; aparece "¡Compra confirmada!" con el n° de venta 15 y se vacía el carrito | ✅ Pasa |
+| PU-045 | Carrito | Sin stock en el backend | `VentaService.crear` simulado rechazando con 409 | Completar el checkout y "Confirmar compra" | Muestra "No hay stock suficiente de Set de Puas y Correa", no confirma y el carrito no se vacía | ✅ Pasa |
 
 ## 6. Resultado de la ejecución
 
 ```
- Test Files  13 passed (13)
-      Tests  41 passed (41)
+ Test Files  14 passed (14)
+      Tests  45 passed (45)
 ```
 
-Las 41 pruebas pasan. Además del plan automatizado, se revisó manualmente en el navegador
+Las 45 pruebas pasan. Además del plan automatizado, se revisó manualmente en el navegador
 (Chrome) la versión de escritorio (1280 px) y celular (375 px) de las páginas, comparándolas
 con el sitio original de la primera entrega.

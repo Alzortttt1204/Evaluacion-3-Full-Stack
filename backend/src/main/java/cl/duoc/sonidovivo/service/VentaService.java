@@ -1,21 +1,72 @@
 package cl.duoc.sonidovivo.service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
+import cl.duoc.sonidovivo.model.Cliente;
+import cl.duoc.sonidovivo.model.Producto;
 import cl.duoc.sonidovivo.model.Venta;
+import cl.duoc.sonidovivo.repository.ClienteRepository;
+import cl.duoc.sonidovivo.repository.ProductoRepository;
 import cl.duoc.sonidovivo.repository.VentaRepository;
 
 @Service
 public class VentaService {
 
     private final VentaRepository ventaRepository;
+    private final ClienteRepository clienteRepository;
+    private final ProductoRepository productoRepository;
 
     // Inyeccion de dependencias por constructor
-    public VentaService(VentaRepository ventaRepository) {
+    public VentaService(VentaRepository ventaRepository, ClienteRepository clienteRepository,
+                        ProductoRepository productoRepository) {
         this.ventaRepository = ventaRepository;
+        this.clienteRepository = clienteRepository;
+        this.productoRepository = productoRepository;
+    }
+
+    /**
+     * Compra hecha desde la tienda (carrito) con un token de rol USER.
+     * Por seguridad el frontend solo elige producto, cantidad, medio de pago y tipo de entrega:
+     * el cliente se busca por el correo del token, el precio sale de la tabla producto,
+     * la fecha es la de hoy y se descuenta el stock. Todo en una sola transaccion.
+     */
+    @Transactional
+    public Venta registrarCompra(Venta datos, String correo) {
+        Cliente cliente = clienteRepository.findByCorreo(correo)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "La cuenta no tiene una ficha de cliente para comprar"));
+
+        if (datos.getProductoId() == null || datos.getCantidad() == null || datos.getCantidad() < 1
+                || datos.getMedioPagoId() == null || datos.getTipoEntregaId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Faltan datos de la compra");
+        }
+
+        Producto producto = productoRepository.findById(datos.getProductoId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El producto no existe"));
+
+        if (producto.getStock() < datos.getCantidad()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "No hay stock suficiente de " + producto.getNombre());
+        }
+        producto.setStock(producto.getStock() - datos.getCantidad());
+        productoRepository.save(producto);
+
+        Venta venta = new Venta();
+        venta.setFecha(LocalDate.now());
+        venta.setClienteId(cliente.getId());
+        venta.setProductoId(producto.getId());
+        venta.setCantidad(datos.getCantidad());
+        venta.setPrecioUnitario(producto.getPrecio());
+        venta.setMedioPagoId(datos.getMedioPagoId());
+        venta.setTipoEntregaId(datos.getTipoEntregaId());
+        return ventaRepository.save(venta);
     }
 
     // Obtener todos los registros

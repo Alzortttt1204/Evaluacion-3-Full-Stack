@@ -9,6 +9,7 @@ import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -68,10 +69,20 @@ public class VentaController {
     }
 
     // POST /api/ventas -> crea uno nuevo (201)
-    @Operation(summary = "Crear venta (USER o ADMIN)")
+    // ADMIN: CRUD normal, se guardan los datos enviados.
+    // USER (compra desde el carrito): el cliente sale del token, el precio del producto y se descuenta el stock.
+    @Operation(summary = "Crear venta (USER o ADMIN)",
+            description = "ADMIN guarda la venta tal como se envia. USER compra desde la tienda: el backend toma "
+                    + "el cliente desde el token, el precio desde el producto y la fecha de hoy, y descuenta el stock "
+                    + "(400 si faltan datos, 404 si el producto no existe, 409 si no hay stock)")
     @PostMapping
-    public ResponseEntity<Venta> crear(@RequestBody Venta venta) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ventaService.guardar(venta));
+    public ResponseEntity<Venta> crear(@RequestBody Venta venta, Authentication autenticacion) {
+        boolean esAdmin = autenticacion.getAuthorities().stream()
+                .anyMatch(permiso -> "ROLE_ADMIN".equals(permiso.getAuthority()));
+        Venta guardada = esAdmin
+                ? ventaService.guardar(venta)
+                : ventaService.registrarCompra(venta, autenticacion.getName()); // getName() = correo del token
+        return ResponseEntity.status(HttpStatus.CREATED).body(guardada);
     }
 
     // PUT /api/ventas/{id} -> actualiza uno existente (404 si no existe)

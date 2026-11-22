@@ -142,6 +142,7 @@ function App() {
                 onCambiarCantidad={manejarCambiarCantidad}
                 onEliminar={manejarEliminarDelCarrito}
                 onVaciar={vaciarCarrito}
+                onCompraRealizada={cargarProductos}
               />
             }
           />

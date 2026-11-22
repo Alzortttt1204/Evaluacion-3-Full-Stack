@@ -16,7 +16,8 @@ function haciaApiRegistro(datos) {
   return {
     run: datos.run.trim().toUpperCase(),
     nombre: datos.nombre.trim(),
-    apellidos: datos.apellidos.trim(),
+    apellidoPaterno: datos.apellidoPaterno.trim(),
+    apellidoMaterno: datos.apellidoMaterno.trim() || null,
     correo: datos.correo.trim().toLowerCase(),
     telefono: datos.telefono.trim() || null,
     direccion: datos.direccion.trim(),

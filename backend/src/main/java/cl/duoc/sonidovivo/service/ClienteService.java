@@ -39,7 +39,8 @@ public class ClienteService {
         return clienteRepository.findById(id).map(cliente -> {
             cliente.setRun(datos.getRun());
             cliente.setNombre(datos.getNombre());
-            cliente.setApellidos(datos.getApellidos());
+            cliente.setApellidoPaterno(datos.getApellidoPaterno());
+            cliente.setApellidoMaterno(datos.getApellidoMaterno());
             cliente.setCorreo(datos.getCorreo());
             cliente.setTelefono(datos.getTelefono());
             cliente.setDireccion(datos.getDireccion());

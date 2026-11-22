@@ -5,7 +5,8 @@ import { validarLogin, validarRegistro, validarProducto, validarCheckout } from 
 const registroValido = {
   run: '19011022K',
   nombre: 'Ignacio',
-  apellidos: 'Hidalgo Soto',
+  apellidoPaterno: 'Hidalgo',
+  apellidoMaterno: 'Soto',
   correo: 'ignacio@duoc.cl',
   fenac: '',
   telefono: '',
@@ -62,6 +63,18 @@ describe('validaciones', () => {
 
     // Assert
     expect(resultado).toEqual({ campo: 'repetirContrasena', mensaje: 'Las contraseñas no coinciden' })
+  })
+
+  it('PU-042: el apellido paterno es obligatorio y el materno opcional (1FN)', () => {
+    // Arrange
+    const sinPaterno = { ...registroValido, apellidoPaterno: '' }
+    const sinMaterno = { ...registroValido, apellidoMaterno: '' }
+    const maternoConNumeros = { ...registroValido, apellidoMaterno: 'Soto2' }
+
+    // Act y Assert
+    expect(validarRegistro(sinPaterno)).toEqual({ campo: 'apellidoPaterno', mensaje: 'Debe ingresar su apellido paterno' })
+    expect(validarRegistro(sinMaterno)).toBeNull()
+    expect(validarRegistro(maternoConNumeros).campo).toBe('apellidoMaterno')
   })
 
   it('PU-005: validarProducto exige un precio entero mayor a 0', () => {

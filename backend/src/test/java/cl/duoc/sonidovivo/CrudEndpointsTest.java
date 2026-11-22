@@ -72,7 +72,8 @@ class CrudEndpointsTest {
         return Map.of(
                 "run", run,
                 "nombre", faker.name().firstName(),
-                "apellidos", faker.name().lastName(),
+                "apellidoPaterno", faker.name().lastName(),
+                "apellidoMaterno", faker.name().lastName(),
                 "correo", correo,
                 "telefono", "9" + faker.number().digits(8),
                 "direccion", faker.address().streetAddress(),
@@ -112,6 +113,17 @@ class CrudEndpointsTest {
     void crudVentas() throws Exception {
         Map<String, Object> editado = ventaFalsa();
         probarCrud("/api/ventas", "ventaList", ventaFalsa(), editado, "cantidad", editado.get("cantidad"));
+    }
+
+    @Test
+    void migracionV5SeparaLosApellidos() throws Exception {
+        // V2 guardo "Rojas Pérez" y "Hidalgo" en una sola columna; V5 los reparte (1FN)
+        mockMvc.perform(get("/api/clientes/1").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(jsonPath("$.apellidoPaterno").value("Rojas"))
+                .andExpect(jsonPath("$.apellidoMaterno").value("Pérez"));
+        mockMvc.perform(get("/api/clientes/2").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(jsonPath("$.apellidoPaterno").value("Hidalgo"))
+                .andExpect(jsonPath("$.apellidoMaterno").doesNotExist());
     }
 
     @Test

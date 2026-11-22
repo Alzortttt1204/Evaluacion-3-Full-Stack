@@ -81,7 +81,11 @@ export const textosCarrito = {
   leyendaCheckout: 'Datos de despacho y pago',
   botonConfirmar: 'Confirmar compra',
   pedidoConfirmado: '¡Compra confirmada!',
-  notaPago: 'Pago simulado: el sitio no procesa pagos reales.',
+  notaPago: 'La compra se guarda en la tienda, pero el pago es simulado: el sitio no procesa pagos reales.',
+  necesitaSesion: 'Para confirmar la compra debes iniciar sesión con tu cuenta de cliente.',
+  soloClientes: 'La cuenta de administrador no compra en la tienda. Inicia sesión con una cuenta de cliente.',
+  sesionExpirada: 'Tu sesión expiró. Vuelve a iniciar sesión para confirmar la compra.',
+  errorCompra: 'No se pudo registrar la compra.',
 }
 
 export const textosPerfil = {
