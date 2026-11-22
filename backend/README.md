@@ -15,7 +15,8 @@ sobre una base de datos **normalizada a tercera forma normal (3FN)**.
 
 **Semana 3** agrega **roles ADMIN y USER** (tabla `rol` en 3FN, migración V4) con permisos distintos en los endpoints,
 y la conexión con el frontend React (carpeta `../frontend`), que consume esta API con **Axios**. La migración V5
-separa los apellidos del cliente (1FN) y la compra del carrito se guarda en `venta` con el token del cliente.
+separa los apellidos del cliente (1FN), la V6 relaciona cada cuenta (`usuario`) con su ficha de `cliente`, y la compra
+del carrito se guarda en `venta` con el token del cliente.
 
 ## Requisitos
 
@@ -48,9 +49,10 @@ las entidades calcen con las tablas).
 | `V3__crear_usuario.sql` | Tabla `usuario` para el login, con el usuario de prueba |
 | `V4__agregar_rol_usuario.sql` | Tabla `rol` (ADMIN, USER), columna `usuario.rol_id` y el cliente de prueba |
 | `V5__separar_apellidos.sql` | 1FN: `cliente.apellidos` pasa a `apellido_paterno` y `apellido_materno` (reparte los datos ya guardados) |
+| `V6__relacionar_usuario_cliente.sql` | Columna `usuario.cliente_id` (llave foránea a `cliente`, única y opcional) y enlace de las cuentas existentes |
 
 Flyway anota en la tabla `flyway_schema_history` qué versiones ya aplicó y solo ejecuta las nuevas.
-**Una migración ya aplicada no se edita**: cualquier cambio de la base va en un archivo nuevo (por eso V5 cambia `cliente` sin tocar V1).
+**Una migración ya aplicada no se edita**: cualquier cambio de la base va en un archivo nuevo (por eso V5 cambia `cliente` sin tocar V1, y V6 cambia `usuario` sin tocar V3).
 
 Para empezar de cero: borrar la base (`DROP DATABASE sonido_vivo;` en phpMyAdmin) y volver a arrancar.
 
@@ -66,6 +68,7 @@ erDiagram
     MEDIO_PAGO   ||--o{ VENTA    : "se paga con"
     TIPO_ENTREGA ||--o{ VENTA    : "se entrega por"
     ROL          ||--o{ USUARIO  : "tiene"
+    CLIENTE      |o--o| USUARIO  : "inicia sesion con"
 
     CATEGORIA    { bigint id PK
                    varchar nombre UK }
@@ -106,7 +109,8 @@ erDiagram
     USUARIO      { bigint id PK
                    varchar correo UK
                    varchar contrasena
-                   bigint rol_id FK }
+                   bigint rol_id FK
+                   bigint cliente_id FK, UK }
 ```
 
 **Por qué está en 3FN:**
@@ -119,7 +123,12 @@ erDiagram
     solo queda su `id` como llave foránea, así cada nombre se guarda una sola vez y no se repite texto.
   - La venta **no guarda el total**, porque es un dato calculado (`cantidad × precio_unitario`).
   - `precio_unitario` es el precio **al momento de la venta**, no una copia de `producto.precio`, que puede cambiar después.
-  - Cada tabla representa un solo concepto, y todas las relaciones son de uno a muchos (1:N).
+  - Cada tabla representa un solo concepto. Las relaciones son de uno a muchos (1:N), salvo `usuario`–`cliente`, que es
+    de uno a uno (`cliente_id` es único) y opcional: el administrador tiene cuenta pero no ficha de cliente.
+- **Ninguna tabla queda aislada:** todas están conectadas por llaves foráneas (`rol → usuario → cliente → venta`).
+  La cuenta y la ficha se enlazan por `usuario.cliente_id` (V6), no por el correo repetido: si el correo de la ficha
+  cambia, la cuenta sigue apuntando al mismo cliente. `flyway_schema_history` no es parte del modelo: es la tabla
+  donde Flyway anota qué migraciones aplicó.
 
 En la base de datos las relaciones existen como **llaves foráneas**. En Java, como pide la Semana 1, las entidades guardan
 esos ids como números simples (`categoriaId`, `comunaId`, `clienteId`...) sin anotaciones de relación JPA.
@@ -150,14 +159,16 @@ Sin `JWT_SECRET` todo funciona, pero los tokens dejan de servir cada vez que se 
 **401** = no envió token o el token no sirve. **403** = el token es válido, pero su rol no tiene permiso.
 
 **Compra desde la tienda (USER):** en `POST /api/ventas` el frontend solo envía producto, cantidad, medio de pago y tipo
-de entrega. El backend busca el cliente por el **correo del token** (no se puede comprar a nombre de otro), toma el
+de entrega. El backend busca la cuenta del **correo del token** y su ficha por `usuario.cliente_id` (no se puede comprar a
+nombre de otro), toma el
 **precio de la tabla producto**, pone la fecha de hoy y **descuenta el stock**, todo en una transacción. Responde **201**,
 **400** si faltan datos o la cuenta no tiene ficha de cliente, **404** si el producto no existe y **409** si no hay stock.
 Con token de ADMIN el POST guarda la venta tal como se envía (CRUD normal).
 
 **Registro:** `POST /api/auth/registro` recibe los datos del formulario "Registrarse" (run, nombre, apellidoPaterno, apellidoMaterno, correo,
 teléfono, dirección, comunaId y contraseña). En una sola transacción guarda la ficha en `cliente` y la cuenta en
-`usuario` con la contraseña en BCrypt y **siempre `rol_id = 2` (USER)**: nadie puede registrarse como ADMIN.
+`usuario` con la contraseña en BCrypt, **siempre `rol_id = 2` (USER)** (nadie puede registrarse como ADMIN) y `cliente_id`
+apuntando a la ficha recién creada.
 Responde **201**, **400** si faltan datos o **409** si el correo o el RUN ya existen (y en ese caso no guarda nada).
 
 **Usuarios de prueba** (los mismos del frontend). En la tabla se guarda solo el hash BCrypt de la contraseña, nunca el texto:
@@ -214,7 +225,7 @@ backend/
     │   └── security/     SeguridadConfig, JwtFiltro y JwtServicio
     └── resources/
         ├── application.properties
-        └── db/migration/ V1 a V5 (Flyway)
+        └── db/migration/ V1 a V6 (Flyway)
 ```
 
 ## Endpoints
@@ -268,10 +279,10 @@ Los ids de los catálogos están comentados en [`V2__datos_iniciales.sql`](src/m
 ```
 
 Usan una base **H2 en memoria** (configurada solo en `src/test/resources`), así que no necesitan MySQL encendido.
-Flyway ejecuta sobre H2 **las mismas migraciones** V1 a V5. Los datos de cada registro de prueba (nombres,
+Flyway ejecuta sobre H2 **las mismas migraciones** V1 a V6. Los datos de cada registro de prueba (nombres,
 direcciones, precios, fechas...) los genera **DataFaker** al azar en cada ejecución.
 
 | Clase | Qué prueba |
 | :--- | :--- |
 | `CrudEndpointsTest` (6) | Los 5 endpoints de Producto, Cliente y Venta con token de ADMIN y datos de DataFaker, los enlaces HATEOAS, el 409 y que V5 separe los apellidos ya guardados |
-| `AutenticacionTest` (13) | Registro de una cuenta USER que luego inicia sesión, registro con correo repetido (409), login correcto (con su rol) e incorrecto, catálogo público, 401 sin token o con token falso, 403 para USER en productos y clientes, compra de USER (usa su cliente y el precio real aunque envíe otros, y descuenta stock), compra sin stock (409), y Swagger público |
+| `AutenticacionTest` (15) | Registro de una cuenta USER que luego inicia sesión, registro con correo repetido (409), login correcto (con su rol) e incorrecto, catálogo público, 401 sin token o con token falso, 403 para USER en productos y clientes, compra de USER (usa su cliente y el precio real aunque envíe otros, y descuenta stock), compra sin stock (409), que V6 enlace cada cuenta con su ficha (el admin sin ficha), que la compra siga funcionando aunque el admin cambie el correo de la ficha, y Swagger público |

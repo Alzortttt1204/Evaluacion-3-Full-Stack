@@ -24,7 +24,8 @@ Los dos proyectos están **separados** y se ejecutan por separado (backend en In
 - **Semana 2:** migraciones con **Flyway**, autenticación con **JWT**, documentación con **Swagger** y respuestas
   **HATEOAS** en los GET, y pruebas **JUnit** con datos generados por **DataFaker**.
 - **Semana 3:** roles **ADMIN** y **USER** (tabla `rol` normalizada, migración V4), permisos por rol en los endpoints
-  y conexión con el frontend React mediante **Axios**. El cliente guarda apellido paterno y materno por separado (1FN, migración V5).
+  y conexión con el frontend React mediante **Axios**. El cliente guarda apellido paterno y materno por separado (1FN, migración V5)
+  y cada cuenta se relaciona con su ficha de cliente por llave foránea (migración V6): ninguna tabla queda aislada.
 
 Endpoints, permisos por rol y modelo de datos en [`backend/README.md`](backend/README.md).
 
@@ -163,7 +164,7 @@ Campos de contexto de una tienda de música agregados:
 
 - **Frontend:** 45 pruebas unitarias con Vitest, todas con el patrón AAA. Las que llaman a la API simulan
   Axios con `vi.mock`. El detalle está en [`frontend/plan_de_pruebas.md`](frontend/plan_de_pruebas.md).
-- **Backend:** 19 pruebas con JUnit y DataFaker, incluidos los roles, el registro, la compra y la migración V5 (`mvnw.cmd test` en la carpeta `backend/`).
+- **Backend:** 21 pruebas con JUnit y DataFaker, incluidos los roles, el registro, la compra y las migraciones V5 y V6 (`mvnw.cmd test` en la carpeta `backend/`).
   No necesitan MySQL. El detalle está en [`backend/README.md`](backend/README.md#pruebas-junit--datafaker).
 
 ## Entregables de la Evaluación 3

@@ -85,11 +85,13 @@ public class AuthController {
         cliente.setComunaId(datos.comunaId());
         clienteRepository.saveAndFlush(cliente);
 
-        // 2. Cuenta para iniciar sesion: contrasena en BCrypt y siempre rol USER
+        // 2. Cuenta para iniciar sesion: contrasena en BCrypt, siempre rol USER
+        //    y enlazada a la ficha recien creada (llave foranea usuario.cliente_id, V6)
         Usuario usuario = new Usuario();
         usuario.setCorreo(correo);
         usuario.setContrasena(passwordEncoder.encode(datos.contrasena()));
         usuario.setRolId(ROL_USER);
+        usuario.setClienteId(cliente.getId());
         usuarioRepository.saveAndFlush(usuario);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("correo", correo, "rol", "USER"));

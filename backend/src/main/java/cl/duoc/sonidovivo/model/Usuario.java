@@ -33,7 +33,20 @@ public class Usuario {
     @Column(name = "rol_id", nullable = false)
     private Long rolId;
 
+    // Llave foranea a la tabla cliente: la ficha de quien compra con esta cuenta.
+    // NULL para el administrador (no es cliente). Columna agregada en V6__relacionar_usuario_cliente.sql
+    @Column(name = "cliente_id", unique = true)
+    private Long clienteId;
+
     public Usuario() {
+    }
+
+    public Long getClienteId() {
+        return clienteId;
+    }
+
+    public void setClienteId(Long clienteId) {
+        this.clienteId = clienteId;
     }
 
     public Long getRolId() {

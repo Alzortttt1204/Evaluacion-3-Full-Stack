@@ -1,8 +1,12 @@
 package cl.duoc.sonidovivo;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -19,6 +23,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.jayway.jsonpath.JsonPath;
 
+import cl.duoc.sonidovivo.repository.UsuarioRepository;
+
 import net.datafaker.Faker;
 
 /**
@@ -33,6 +39,9 @@ class AutenticacionTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private UsuarioRepository usuarioRepository;
 
     private String login(String correo, String contrasena) {
         return "{\"correo\":\"" + correo + "\",\"contrasena\":\"" + contrasena + "\"}";
@@ -187,6 +196,44 @@ class AutenticacionTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(registro(faker.number().digits(8) + "K", "admin@duoc.cl", "clave123")))
                 .andExpect(status().isConflict());
+    }
+
+    @Test
+    void migracionV6EnlazaCadaCuentaConSuFichaDeCliente() {
+        // V6 relaciona usuario con cliente (llave foranea usuario.cliente_id)
+        assertEquals(1L, usuarioRepository.findByCorreo("cliente@gmail.com").orElseThrow().getClienteId());
+        // El administrador no es cliente: queda sin ficha
+        assertNull(usuarioRepository.findByCorreo("admin@duoc.cl").orElseThrow().getClienteId());
+    }
+
+    @Test
+    void registroEnlazaLaCuentaYLaCompraSigueAunqueCambieElCorreoDeLaFicha() throws Exception {
+        String correo = faker.internet().emailAddress().toLowerCase();
+        mockMvc.perform(post("/api/auth/registro")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(registro(faker.number().digits(8) + "K", correo, "clave123")))
+                .andExpect(status().isCreated());
+
+        // La cuenta nueva queda enlazada a su ficha de cliente
+        Long clienteId = usuarioRepository.findByCorreo(correo).orElseThrow().getClienteId();
+        assertNotNull(clienteId);
+
+        // El ADMIN cambia el correo de la ficha: como el enlace es por id, el cliente puede seguir comprando
+        String bearerAdmin = bearer("admin@duoc.cl", "admin123");
+        String ficha = mockMvc.perform(get("/api/clientes/" + clienteId).header(HttpHeaders.AUTHORIZATION, bearerAdmin))
+                .andReturn().getResponse().getContentAsString();
+        mockMvc.perform(put("/api/clientes/" + clienteId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerAdmin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(ficha.replace(correo, "nuevo." + correo)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/ventas")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(correo, "clave123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"productoId\":8,\"cantidad\":1,\"medioPagoId\":1,\"tipoEntregaId\":1}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.clienteId").value(clienteId));
     }
 
     @Test
